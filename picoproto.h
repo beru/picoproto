@@ -62,14 +62,7 @@
 #include <map>
 #include <string_view>
 #include <vector>
-
-// To keep dependencies minimal, some bare-bones macros to make logging easier.
-#define PP_LOG(X) PP_LOG_##X
-#define PP_LOG_INFO std::cerr << __FILE__ << ":" << __LINE__ << " - INFO: "
-#define PP_LOG_WARN std::cerr << __FILE__ << ":" << __LINE__ << " - WARN: "
-#define PP_LOG_ERROR std::cerr << __FILE__ << ":" << __LINE__ << " - ERROR: "
-#define PP_CHECK(X) \
-  if (!(X)) PP_LOG(ERROR) << "PP_CHECK(" << #X << ") failed. "
+#include <optional>
 
 namespace picoproto {
 
@@ -154,21 +147,19 @@ class Message {
   // field. As discussed above, the burden is on the client code to know the
   // field number and type of each member it's trying to access, and so pick the
   // correct accessor function.
-  // If the field isn't present, this will raise an error, so if it's optional
-  // you should use the array accessors below.
-  int32_t GetInt32(int32_t number);
-  int64_t GetInt64(int32_t number);
-  uint32_t GetUInt32(int32_t number);
-  uint64_t GetUInt64(int32_t number);
-  int64_t GetInt(int32_t number);
-  bool GetBool(int32_t number);
-  float GetFloat(int32_t number);
-  double GetDouble(int32_t number);
+  std::optional<int32_t> GetInt32(int32_t number);
+  std::optional<int64_t> GetInt64(int32_t number);
+  std::optional<uint32_t> GetUInt32(int32_t number);
+  std::optional<uint64_t> GetUInt64(int32_t number);
+  std::optional<int64_t> GetInt(int32_t number);
+  std::optional<bool> GetBool(int32_t number);
+  std::optional<float> GetFloat(int32_t number);
+  std::optional<double> GetDouble(int32_t number);
   std::pair<uint8_t*, size_t> GetBytes(int32_t number);
   std::string_view GetString(int32_t number);
   Message* GetMessage(int32_t number);
 
-  // If you're not sure if a value will be present, or if it is repeated, you
+  // If a value is repeated, you
   // should call these array functions. If no such field has been seen, then the
   // result will be an empty vector, otherwise you'll get back one or more
   // entries.

@@ -15,6 +15,14 @@
 
 #include "picoproto.h"
 
+ // To keep dependencies minimal, some bare-bones macros to make logging easier.
+#define PP_LOG(X) PP_LOG_##X
+#define PP_LOG_INFO std::cerr << __FILE__ << ":" << __LINE__ << " - INFO: "
+#define PP_LOG_WARN std::cerr << __FILE__ << ":" << __LINE__ << " - WARN: "
+#define PP_LOG_ERROR std::cerr << __FILE__ << ":" << __LINE__ << " - ERROR: "
+#define PP_CHECK(X) \
+  if (!(X)) PP_LOG(ERROR) << "PP_CHECK(" << #X << ") failed. "
+
 namespace picoproto {
 
 namespace {
@@ -276,43 +284,60 @@ Field* Message::GetField(int32_t number) {
 
 Field* Message::GetFieldAndCheckType(int32_t number, enum FieldType type) {
   Field* field = GetField(number);
-  PP_CHECK(field) << "No field for " << number;
-  PP_CHECK(field->type == type) << "For field " << number << " wanted type "
-                                << FieldTypeDebugString(type) << " but found "
-                                << FieldTypeDebugString(field->type);
+  if (field) {
+    PP_CHECK(field) << "No field for " << number;
+    PP_CHECK(field->type == type) << "For field " << number << " wanted type "
+                                  << FieldTypeDebugString(type) << " but found "
+                                  << FieldTypeDebugString(field->type);
+  }
   return field;
 }
 
-int32_t Message::GetInt32(int32_t number) {
+std::optional<int32_t> Message::GetInt32(int32_t number) {
   Field* field = GetFieldAndCheckType(number, FIELD_UINT32);
+  if (!field) {
+    return std::optional<int32_t>();
+  }
   uint32_t first_value = (*(field->value.v_uint32))[0];
   int32_t zig_zag_decoded =
     static_cast<int32_t>((first_value >> 1) ^ (-(first_value & 1)));
   return zig_zag_decoded;
 }
 
-int64_t Message::GetInt64(int32_t number) {
+std::optional<int64_t> Message::GetInt64(int32_t number) {
   Field* field = GetFieldAndCheckType(number, FIELD_UINT64);
+  if (!field) {
+    return std::optional<int64_t>();
+  }
   uint64_t first_value = (*(field->value.v_uint64))[0];
   int64_t zig_zag_decoded =
     static_cast<int64_t>((first_value >> 1) ^ (-(first_value & 1)));
   return zig_zag_decoded;
 }
 
-uint32_t Message::GetUInt32(int32_t number) {
+std::optional<uint32_t> Message::GetUInt32(int32_t number) {
   Field* field = GetFieldAndCheckType(number, FIELD_UINT32);
+  if (!field) {
+    return std::optional<uint32_t>();
+  }
   uint32_t first_value = (*(field->value.v_uint32))[0];
   return first_value;
 }
 
-uint64_t Message::GetUInt64(int32_t number) {
+std::optional<uint64_t> Message::GetUInt64(int32_t number) {
   Field* field = GetFieldAndCheckType(number, FIELD_UINT64);
+  if (!field) {
+    return std::optional<uint64_t>();
+  }
   uint64_t first_value = (*(field->value.v_uint64))[0];
   return first_value;
 }
 
-int64_t Message::GetInt(int32_t number) {
+std::optional<int64_t> Message::GetInt(int32_t number) {
   Field* field = GetField(number);
+  if (!field) {
+    return std::optional<int64_t>();
+  }
   PP_CHECK(field) << "No field for " << number;
   PP_CHECK((field->type == FIELD_UINT32) || (field->type == FIELD_UINT64))
       << "For field " << number << " wanted integer type but found "
@@ -332,17 +357,20 @@ int64_t Message::GetInt(int32_t number) {
   return 0;
 }
 
-bool Message::GetBool(int32_t number) { return (GetInt(number) != 0); }
+std::optional<bool> Message::GetBool(int32_t number) { return (GetInt(number) != 0); }
 
-float Message::GetFloat(int32_t number) {
-  uint32_t int_value = GetUInt32(number);
-  float float_value = *(bit_cast<float*>(&int_value));
+std::optional<float> Message::GetFloat(int32_t number) {
+  Field* field = GetFieldAndCheckType(number, FIELD_UINT32);
+  uint32_t first_value = (*(field->value.v_uint32))[0];
+  float float_value = bit_cast<float>(first_value);
   return float_value;
 }
 
-double Message::GetDouble(int32_t number) {
-  uint64_t int_value = GetUInt64(number);
-  return *(bit_cast<double*>(&int_value));
+std::optional<double> Message::GetDouble(int32_t number) {
+  Field* field = GetFieldAndCheckType(number, FIELD_UINT64);
+  uint64_t first_value = (*(field->value.v_uint64))[0];
+  double float_value = bit_cast<double>(first_value);
+  return float_value;
 }
 
 std::pair<uint8_t*, size_t> Message::GetBytes(int32_t number) {
@@ -353,6 +381,9 @@ std::pair<uint8_t*, size_t> Message::GetBytes(int32_t number) {
 
 std::string_view Message::GetString(int32_t number) {
   Field* field = GetFieldAndCheckType(number, FIELD_BYTES);
+  if (!field) {
+    return std::string_view();
+  }
   std::pair<uint8_t*, size_t> first_value = (*(field->value.v_bytes))[0];
   std::string_view result((const char*)first_value.first, first_value.second);
   return result;
