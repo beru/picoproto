@@ -60,7 +60,7 @@
 #include <cstdint>
 #include <iostream>
 #include <map>
-#include <string>
+#include <string_view>
 #include <vector>
 
 // To keep dependencies minimal, some bare-bones macros to make logging easier.
@@ -86,7 +86,7 @@ enum FieldType {
 };
 
 // Gives a readable name for the field type for logging purposes.
-std::string FieldTypeDebugString(enum FieldType type);
+std::string_view FieldTypeDebugString(enum FieldType type);
 
 // Forward declare the main message class, since fields can contain them.
 class Message;
@@ -165,7 +165,7 @@ class Message {
   float GetFloat(int32_t number);
   double GetDouble(int32_t number);
   std::pair<uint8_t*, size_t> GetBytes(int32_t number);
-  std::string GetString(int32_t number);
+  std::string_view GetString(int32_t number);
   Message* GetMessage(int32_t number);
 
   // If you're not sure if a value will be present, or if it is repeated, you
@@ -180,7 +180,7 @@ class Message {
   std::vector<float> GetFloatArray(int32_t number);
   std::vector<double> GetDoubleArray(int32_t number);
   std::vector<std::pair<uint8_t*, size_t>> GetByteArray(int32_t number);
-  std::vector<std::string> GetStringArray(int32_t number);
+  std::vector<std::string_view> GetStringArray(int32_t number);
   std::vector<Message*> GetMessageArray(int32_t number);
 
   // It's unlikely you'll want to access fields directly, but here's an escape

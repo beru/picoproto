@@ -82,7 +82,7 @@ void ReadWireTypeAndFieldNumber(uint8_t** current, size_t* remaining,
 
 }  // namespace
 
-std::string FieldTypeDebugString(enum FieldType type) {
+std::string_view FieldTypeDebugString(enum FieldType type) {
   switch (type) {
     case FIELD_UNSET:
       return "UNSET";
@@ -351,10 +351,10 @@ std::pair<uint8_t*, size_t> Message::GetBytes(int32_t number) {
   return first_value;
 }
 
-std::string Message::GetString(int32_t number) {
+std::string_view Message::GetString(int32_t number) {
   Field* field = GetFieldAndCheckType(number, FIELD_BYTES);
   std::pair<uint8_t*, size_t> first_value = (*(field->value.v_bytes))[0];
-  std::string result(first_value.first, first_value.first + first_value.second);
+  std::string_view result((const char*)first_value.first, first_value.second);
   return result;
 }
 
@@ -510,16 +510,15 @@ std::vector<std::pair<uint8_t*, size_t>> Message::GetByteArray(int32_t number) {
   return result;
 }
 
-std::vector<std::string> Message::GetStringArray(int32_t number) {
-  std::vector<std::string> result;
+std::vector<std::string_view> Message::GetStringArray(int32_t number) {
+  std::vector<std::string_view> result;
   Field* field = GetField(number);
   if (!field) {
     return result;
   }
   if (field->type == FIELD_BYTES) {
     for (std::pair<uint8_t*, size_t> data_info : *field->value.v_bytes) {
-      result.push_back(
-          std::string(data_info.first, data_info.first + data_info.second));
+      result.emplace_back((const char*)data_info.first, data_info.second);
     }
   } else {
     PP_LOG(ERROR) << "Expected field type BYTES but got "
